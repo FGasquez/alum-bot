@@ -50,24 +50,11 @@ func init() {
 var commands = []*discordgo.ApplicationCommand{
 	&cmds.HolydaysCommands,
 	&cmds.HowManyDaysToHolyday,
-	{
-		Name:        "ping",
-		Description: "Ping!",
-	},
 }
 
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 	cmds.HolydaysCommandName:   cmds.HolydaysCommandHandlers,
 	cmds.DaysLeftToHolydayName: cmds.HowManyDaysToHolydayHandlers,
-	"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		// Respond to the ping slash command
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Pong!",
-			},
-		})
-	},
 }
 
 func init() {
@@ -102,7 +89,6 @@ func main() {
 	})
 
 	// Also handle message events (for legacy commands)
-	dg.AddHandler(messageCreate)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
 	// Open a websocket connection to Discord.
@@ -112,11 +98,26 @@ func main() {
 		return
 	}
 
-	// Register the slash commands and store the returned command objects.
+	// Check if commands are already registered to prevent re-registering.
+	existingCommands, err := dg.ApplicationCommands(dg.State.User.ID, "")
+	if err != nil {
+		logrus.WithError(err).Error("Error fetching existing commands")
+		return
+	}
+
+	existingCommandNames := make(map[string]bool)
+	for _, cmd := range existingCommands {
+		existingCommandNames[cmd.Name] = true
+	}
+
 	var registeredCommands []*discordgo.ApplicationCommand
 	for _, guildID := range testGuids {
-
 		for _, cmd := range commands {
+			if existingCommandNames[cmd.Name] {
+				logrus.WithField("command", cmd.Name).Info("Command already registered, skipping")
+				continue
+			}
+
 			rc, err := dg.ApplicationCommandCreate(dg.State.User.ID, guildID, cmd)
 			if err != nil {
 				logrus.WithError(err).WithField("command", cmd.Name).Error("Cannot create slash command")
@@ -148,20 +149,4 @@ func main() {
 
 	// Cleanly close down the Discord session.
 	dg.Close()
-}
-
-// This function will be called for every new message.
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself.
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-	// If the message is "ping", reply with "Pong!"
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
-	}
-	// If the message is "pong", reply with "Ping!"
-	if m.Content == "pong" {
-		s.ChannelMessageSend(m.ChannelID, "Ping!")
-	}
 }
