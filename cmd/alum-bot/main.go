@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/FGasquez/alum-bot/internal/cmds"
+	holidaysCmd "github.com/FGasquez/alum-bot/internal/commands/holiday"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -48,13 +48,13 @@ func init() {
 }
 
 var commands = []*discordgo.ApplicationCommand{
-	&cmds.HolydaysCommands,
-	&cmds.HowManyDaysToHolyday,
+	&holidaysCmd.HolydaysCommands,
+	&holidaysCmd.HowManyDaysToHolyday,
 }
 
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-	cmds.HolydaysCommandName:   cmds.HolydaysCommandHandlers,
-	cmds.DaysLeftToHolydayName: cmds.HowManyDaysToHolydayHandlers,
+	holidaysCmd.HolydaysCommandName:   holidaysCmd.HolydaysCommandHandlers,
+	holidaysCmd.DaysLeftToHolydayName: holidaysCmd.HowManyDaysToHolydayHandlers,
 }
 
 func init() {

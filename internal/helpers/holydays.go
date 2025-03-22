@@ -85,11 +85,17 @@ func IsHolyday(date time.Time, holydays []Holyday) bool {
 	return false
 }
 
+func isToday(parsedDate time.Time) bool {
+	y1, m1, d1 := time.Now().Date()
+	y2, m2, d2 := parsedDate.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
 // NextHolyday returns the next holyday
-func NextHolyday(date time.Time, skipWeekends bool, skipToday bool) *Holyday {
+func NextHolyday(date time.Time, skipWeekends bool, skipToday bool) (*Holyday, bool) {
 	holydays, err := GetHolydays(date.Year())
 	if err != nil {
-		return nil
+		return nil, false
 	}
 
 	for _, h := range holydays {
@@ -98,25 +104,28 @@ func NextHolyday(date time.Time, skipWeekends bool, skipToday bool) *Holyday {
 			continue
 		}
 
-		if holydayDate.After(date) || (!skipToday && holydayDate.Equal(date)) {
+		if holydayDate.After(date) || (!skipToday && isToday(holydayDate)) {
 			if skipWeekends && (holydayDate.Weekday() == time.Saturday || holydayDate.Weekday() == time.Sunday) {
 				continue
 			}
-			return &h
+			return &h, isToday(holydayDate)
 		}
 	}
-	return nil
+	return nil, false
 }
 
 // Calculate how many days are left for the giving holyday
-func DaysLeft() int {
+func DaysLeft(skipWeekends bool, skipToday bool) int {
 	date := time.Now()
-	nextHoliday := NextHolyday(date, true, false)
+	nextHoliday, isToday := NextHolyday(date, skipWeekends, skipToday)
+	if isToday {
+		return 0
+	}
 
 	parsedDate, err := time.Parse("2006-01-02", nextHoliday.Date)
 	if err != nil {
 		return -1
 	}
 
-	return int(math.Ceil(parsedDate.Sub(date).Hours() / 24))
+	return int(math.Ceil((parsedDate.Sub(date).Hours() + 3) / 24))
 }
