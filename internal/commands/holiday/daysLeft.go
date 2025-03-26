@@ -2,18 +2,18 @@ package holidays
 
 import (
 	"fmt"
-	"time"
+	"strconv"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
 
-const HolydaysCommandName = "next-holyday"
+const DaysLeftToHolydayName = "days-left"
 
-var HolydaysCommands = discordgo.ApplicationCommand{
-	Name:        HolydaysCommandName,
-	Description: "Get the next holyday",
+var HowManyDaysToHolyday = discordgo.ApplicationCommand{
+	Name:        DaysLeftToHolydayName,
+	Description: "Get how many days are left for the next holyday",
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Type:        discordgo.ApplicationCommandOptionBoolean,
@@ -30,9 +30,9 @@ var HolydaysCommands = discordgo.ApplicationCommand{
 	},
 }
 
-var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+var HowManyDaysToHolydayHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var skipToday bool = false
-	var skipWeekend bool = false
+	var skipWeekend bool = true
 
 	params := helpers.GetParams(i.ApplicationCommandData().Options)
 	if _, ok := params["skip-today"]; ok {
@@ -42,9 +42,8 @@ var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	nextHoliday, isToday := helpers.NextHolyday(time.Now(), skipWeekend, skipToday)
-	logrus.Infof("Next holyday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
-	if isToday {
+	daysLeftToHolyday := helpers.DaysLeft(skipWeekend, skipToday)
+	if daysLeftToHolyday == 0 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -54,10 +53,8 @@ var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	// Parse nextHoliday.Date into a time.Time object
-	parsedDate, err := time.Parse("2006-01-02", nextHoliday.Date)
-	if err != nil {
-		logrus.Errorf("Failed to parse holiday date: %v", err)
+	if daysLeftToHolyday == -1 {
+		logrus.Errorf("Failed to parse holiday date")
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -67,12 +64,10 @@ var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	day, month, year := helpers.FormatDateToSpanish(parsedDate)
-
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("🎉 El próximo feriado es **%s** el **%s %s %s**. 🎉", nextHoliday.Name, day, month, year),
+			Content: fmt.Sprintf("🎉 Para el próximo feriado faltan %s días! 🎉", strconv.Itoa(daysLeftToHolyday)),
 		},
 	})
 }
