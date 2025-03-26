@@ -50,11 +50,13 @@ func init() {
 var commands = []*discordgo.ApplicationCommand{
 	&holidaysCmd.HolydaysCommands,
 	&holidaysCmd.HowManyDaysToHolyday,
+	&holidaysCmd.HolydaysOfMonth,
 }
 
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 	holidaysCmd.HolydaysCommandName:   holidaysCmd.HolydaysCommandHandlers,
 	holidaysCmd.DaysLeftToHolydayName: holidaysCmd.HowManyDaysToHolydayHandlers,
+	holidaysCmd.HolydaysOfMonthName:   holidaysCmd.HolydaysOfMonthHandlers,
 }
 
 func init() {

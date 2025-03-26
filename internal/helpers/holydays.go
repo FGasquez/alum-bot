@@ -17,6 +17,23 @@ const (
 	holydaysURL = "https://api.argentinadatos.com/v1/feriados/%s"
 )
 
+type Months int
+
+const (
+	January   Months = 1
+	February  Months = 2
+	March     Months = 3
+	April     Months = 4
+	May       Months = 5
+	June      Months = 6
+	July      Months = 7
+	August    Months = 8
+	September Months = 9
+	October   Months = 10
+	November  Months = 11
+	December  Months = 12
+)
+
 // Holyday represents a holyday
 type Holyday struct {
 	Date string `json:"fecha"`
@@ -128,4 +145,25 @@ func DaysLeft(skipWeekends bool, skipToday bool) int {
 	}
 
 	return int(math.Ceil((parsedDate.Sub(date).Hours() + 3) / 24))
+}
+
+func GetAllHolidaysOfMonth(month Months, year int) ([]Holyday, error) {
+	holydays, err := GetHolydays(year)
+	if err != nil {
+		return nil, err
+	}
+
+	var holydaysOfMonth []Holyday
+	for _, h := range holydays {
+		holydayDate, err := time.Parse("2006-01-02", h.Date)
+		if err != nil {
+			continue
+		}
+
+		if holydayDate.Month() == time.Month(month) {
+			holydaysOfMonth = append(holydaysOfMonth, h)
+		}
+	}
+
+	return holydaysOfMonth, nil
 }
