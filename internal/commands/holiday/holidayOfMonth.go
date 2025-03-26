@@ -71,22 +71,24 @@ var HolydaysOfMonth = discordgo.ApplicationCommand{
 				},
 			},
 		},
-		{
-			Type:        discordgo.ApplicationCommandOptionInteger,
-			Name:        "year",
-			Description: "The year",
-			Required:    false,
-		},
+		//{
+		//	Type:        discordgo.ApplicationCommandOptionInteger,
+		//	Name:        "year",
+		//	Description: "The year",
+		//	Required:    false,
+		//},
 	},
 }
 
 var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	month := i.ApplicationCommandData().Options[0].IntValue()
+	monthName := helpers.MonthsToSpanish(month)
 	year := time.Now().Year()
 
+	// TODO: Fix year param
 	params := helpers.GetParams(i.ApplicationCommandData().Options)
 	if _, ok := params["year"]; ok {
-		year = params["year"].(int)
+		year = int(params["year"].(int))
 	}
 
 	holydaysOfMonth, err := helpers.GetAllHolidaysOfMonth(helpers.Months(month), year)
@@ -105,7 +107,7 @@ var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("No hay feriados en el mes %d del año %d", month, year),
+				Content: fmt.Sprintf("No hay feriados en el mes **%s** del año %d", monthName, year),
 			},
 		})
 		return
@@ -126,7 +128,7 @@ var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("Feriados del mes %d del año %d:\n%s", month, year, holydays),
+			Content: fmt.Sprintf("Feriados del mes **%s** del año %d:\n%s", monthName, year, holydays),
 		},
 	})
 }
