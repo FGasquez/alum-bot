@@ -29,3 +29,8 @@ func formatDayNumber(day int) string {
 	}
 	return strconv.Itoa(day)
 }
+
+func MonthsToSpanish(month int64) string {
+	months := []string{"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"}
+	return months[month-1]
+}
