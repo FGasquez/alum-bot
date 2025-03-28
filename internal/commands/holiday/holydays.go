@@ -9,11 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const HolydaysCommandName = "next-holyday"
+const HolidaysCommandName = "next-holiday"
 
-var HolydaysCommands = discordgo.ApplicationCommand{
-	Name:        HolydaysCommandName,
-	Description: "Get the next holyday",
+var HolidaysCommands = discordgo.ApplicationCommand{
+	Name:        HolidaysCommandName,
+	Description: "Get the next holiday",
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Type:        discordgo.ApplicationCommandOptionBoolean,
@@ -30,7 +30,7 @@ var HolydaysCommands = discordgo.ApplicationCommand{
 	},
 }
 
-var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var skipToday bool = false
 	var skipWeekend bool = false
 
@@ -42,8 +42,8 @@ var HolydaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	nextHoliday, isToday := helpers.NextHolyday(time.Now(), skipWeekend, skipToday)
-	logrus.Infof("Next holyday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
+	nextHoliday, isToday := NextHoliday(time.Now(), skipWeekend, skipToday)
+	logrus.Infof("Next holiday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
 	if isToday {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

@@ -9,11 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const HolydaysOfMonthName = "holydays-of-month"
+const HolidaysOfMonthName = "holidays-of-month"
 
-var HolydaysOfMonth = discordgo.ApplicationCommand{
-	Name:        HolydaysOfMonthName,
-	Description: "Get the holydays of the month",
+var HolidaysOfMonth = discordgo.ApplicationCommand{
+	Name:        HolidaysOfMonthName,
+	Description: "Get the holidays of the month",
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Type:        discordgo.ApplicationCommandOptionInteger,
@@ -23,64 +23,58 @@ var HolydaysOfMonth = discordgo.ApplicationCommand{
 			Choices: []*discordgo.ApplicationCommandOptionChoice{
 				{
 					Name:  "Enero",
-					Value: helpers.January,
+					Value: January,
 				},
 				{
 					Name:  "Febrero",
-					Value: helpers.February,
+					Value: February,
 				},
 				{
 					Name:  "Marzo",
-					Value: helpers.March,
+					Value: March,
 				},
 				{
 					Name:  "Abril",
-					Value: helpers.April,
+					Value: April,
 				},
 				{
 					Name:  "Mayo",
-					Value: helpers.May,
+					Value: May,
 				},
 				{
 					Name:  "Junio",
-					Value: helpers.June,
+					Value: June,
 				},
 				{
 					Name:  "Julio",
-					Value: helpers.July,
+					Value: July,
 				},
 				{
 					Name:  "Agosto",
-					Value: helpers.August,
+					Value: August,
 				},
 				{
 					Name:  "Septiembre",
-					Value: helpers.September,
+					Value: September,
 				},
 				{
 					Name:  "Octubre",
-					Value: helpers.October,
+					Value: October,
 				},
 				{
 					Name:  "Noviembre",
-					Value: helpers.November,
+					Value: November,
 				},
 				{
 					Name:  "Diciembre",
-					Value: helpers.December,
+					Value: December,
 				},
 			},
 		},
-		//{
-		//	Type:        discordgo.ApplicationCommandOptionInteger,
-		//	Name:        "year",
-		//	Description: "The year",
-		//	Required:    false,
-		//},
 	},
 }
 
-var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	month := i.ApplicationCommandData().Options[0].IntValue()
 	monthName := helpers.MonthsToSpanish(month)
 	year := time.Now().Year()
@@ -91,7 +85,7 @@ var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		year = int(params["year"].(int))
 	}
 
-	holydaysOfMonth, err := helpers.GetAllHolidaysOfMonth(helpers.Months(month), year)
+	holidaysOfMonth, adjacent, err := GetAllHolidaysOfMonth(Months(month), year)
 	if err != nil {
 		logrus.Errorf("Failed to retrieve holidays of the month: %v", err)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -103,7 +97,7 @@ var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	if len(holydaysOfMonth) == 0 {
+	if len(holidaysOfMonth) == 0 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -113,22 +107,48 @@ var HolydaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	var holydays string
-	for _, holyday := range holydaysOfMonth {
-		parsedDate, err := time.Parse("2006-01-02", holyday.Date)
+	var holidays string
+	for _, holiday := range holidaysOfMonth {
+		parsedDate, err := time.Parse("2006-01-02", holiday.Date)
 		if err != nil {
 			logrus.Errorf("Failed to parse holiday date: %v", err)
 			continue
 		}
 		day, _, _ := helpers.FormatDateToSpanish(parsedDate)
-		holydays += fmt.Sprintf("* **%s** - %s\n", holyday.Name, day)
+		holidays += fmt.Sprintf("* **%s** - %s\n", holiday.Name, day)
+	}
+
+	var adjacentHolidays []string
+	for _, adj := range adjacent {
+		firstDay, err := time.Parse("2006-01-02", adj[0].Date)
+		if err != nil {
+			logrus.Errorf("Failed to parse holiday date: %v", err)
+			continue
+		}
+
+		lastDay, err := time.Parse("2006-01-02", adj[len(adj)-1].Date)
+		if err != nil {
+			logrus.Errorf("Failed to parse holiday date: %v", err)
+			continue
+		}
+		adjacentHolidays = append(adjacentHolidays, fmt.Sprintf("* Del %d al %d\n", firstDay.Day(), lastDay.Day()))
+
+	}
+
+	var message string
+	message = fmt.Sprintf("Feriados del mes **%s** del año %d:\n%s", monthName, year, holidays)
+	if len(adjacentHolidays) > 0 {
+		message += "\n\nFeriados largos:\n"
+		for _, adj := range adjacentHolidays {
+			message += adj
+		}
 	}
 
 	// TODO: Detect holidays adjacent to weekends and show in the message
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("Feriados del mes **%s** del año %d:\n%s", monthName, year, holydays),
+			Content: message,
 		},
 	})
 }

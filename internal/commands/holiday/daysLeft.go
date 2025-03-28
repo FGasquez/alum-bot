@@ -9,11 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const DaysLeftToHolydayName = "days-left"
+const DaysLeftToHolidayName = "days-left"
 
-var HowManyDaysToHolyday = discordgo.ApplicationCommand{
-	Name:        DaysLeftToHolydayName,
-	Description: "Get how many days are left for the next holyday",
+var HowManyDaysToHoliday = discordgo.ApplicationCommand{
+	Name:        DaysLeftToHolidayName,
+	Description: "Get how many days are left for the next holiday",
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Type:        discordgo.ApplicationCommandOptionBoolean,
@@ -30,7 +30,7 @@ var HowManyDaysToHolyday = discordgo.ApplicationCommand{
 	},
 }
 
-var HowManyDaysToHolydayHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+var HowManyDaysToHolidayHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var skipToday bool = false
 	var skipWeekend bool = true
 
@@ -42,8 +42,8 @@ var HowManyDaysToHolydayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	daysLeftToHolyday := helpers.DaysLeft(skipWeekend, skipToday)
-	if daysLeftToHolyday == 0 {
+	daysLeftToHoliday := DaysLeft(skipWeekend, skipToday)
+	if daysLeftToHoliday == 0 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -53,7 +53,7 @@ var HowManyDaysToHolydayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		return
 	}
 
-	if daysLeftToHolyday == -1 {
+	if daysLeftToHoliday == -1 {
 		logrus.Errorf("Failed to parse holiday date")
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -67,7 +67,7 @@ var HowManyDaysToHolydayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("🎉 Para el próximo feriado faltan %s días! 🎉", strconv.Itoa(daysLeftToHolyday)),
+			Content: fmt.Sprintf("🎉 Para el próximo feriado faltan %s días! 🎉", strconv.Itoa(daysLeftToHoliday)),
 		},
 	})
 }
