@@ -206,9 +206,10 @@ func largeHolidays(holidays []Holiday) [][]Holiday {
 			if h, exists := holidayMap[dateStr]; exists && !visited[dateStr] {
 				group = append([]Holiday{h}, group...)
 				visited[dateStr] = true
-			} else if weekday == time.Saturday || weekday == time.Sunday {
+			} else if weekday == time.Sunday || weekday == time.Saturday {
 				group = append([]Holiday{{Date: dateStr, Type: "Weekend", Name: weekday.String()}}, group...)
-			} else {
+				break
+			} else if weekday == time.Monday {
 				break
 			}
 		}
@@ -223,7 +224,7 @@ func largeHolidays(holidays []Holiday) [][]Holiday {
 				visited[dateStr] = true
 			} else if weekday == time.Saturday || weekday == time.Sunday {
 				group = append(group, Holiday{Date: dateStr, Type: "Weekend", Name: weekday.String()})
-			} else {
+			} else if weekday == time.Friday {
 				break
 			}
 		}
