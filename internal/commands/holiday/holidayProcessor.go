@@ -30,7 +30,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed bool) (types.ProcessedHoliday
 			continue
 		}
 
-		daysLeft := int(date.Sub(now).Hours() / 24)
+		daysLeft := int(time.Until(date).Hours() / 24)
 
 		parsedHoliday := types.ParsedHolidays{
 			Date:          h.Date,
@@ -194,6 +194,6 @@ func createWeekendHoliday(day time.Time) types.ParsedHolidays {
 		},
 		FullDate:          day.Format(time.RFC3339),
 		IsToday:           false,
-		DaysLeftToHoliday: int(day.Sub(time.Now()).Hours() / 24),
+		DaysLeftToHoliday: int(time.Until(day).Hours() / 24),
 	}
 }
