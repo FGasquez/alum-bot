@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -85,7 +87,7 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		year = int(params["year"].(int))
 	}
 
-	holidaysOfMonth, adjacent, err := GetAllHolidaysOfMonth(Months(month), year)
+	holidaysOfMonth, err := GetAllHolidaysOfMonth(Months(month), year)
 	if err != nil {
 		logrus.Errorf("Failed to retrieve holidays of the month: %v", err)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -107,42 +109,34 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	var holidays string
+	var adjacentHolidays [][]types.ParsedHolidays
+	adjacentMap := make(map[string]bool)
+
 	for _, holiday := range holidaysOfMonth {
-		parsedDate, err := time.Parse("2006-01-02", holiday.Date)
-		if err != nil {
-			logrus.Errorf("Failed to parse holiday date: %v", err)
-			continue
-		}
-		day, _, _ := helpers.FormatDateToSpanish(parsedDate)
-		holidays += fmt.Sprintf("* **%s** - %s\n", holiday.Name, day)
-	}
+		var currentAdjacents []types.ParsedHolidays
 
-	var adjacentHolidays []string
-	for _, adj := range adjacent {
-		firstDay, err := time.Parse("2006-01-02", adj[0].Date)
-		if err != nil {
-			logrus.Errorf("Failed to parse holiday date: %v", err)
-			continue
+		for _, adjacent := range holiday.Adjacent {
+			if adjacentMap[adjacent.Date] {
+				continue
+			}
+
+			currentAdjacents = append(currentAdjacents, adjacent)
+			adjacentMap[adjacent.Date] = true
 		}
 
-		lastDay, err := time.Parse("2006-01-02", adj[len(adj)-1].Date)
-		if err != nil {
-			logrus.Errorf("Failed to parse holiday date: %v", err)
-			continue
-		}
-		adjacentHolidays = append(adjacentHolidays, fmt.Sprintf("* Del %d al %d\n", firstDay.Day(), lastDay.Day()))
-
-	}
-
-	var message string
-	message = fmt.Sprintf("Feriados del mes **%s** del año %d:\n%s", monthName, year, holidays)
-	if len(adjacentHolidays) > 0 {
-		message += "\n\nFeriados largos:\n"
-		for _, adj := range adjacentHolidays {
-			message += adj
+		if len(currentAdjacents) > 1 { // <<-- Important: at least 2 to consider it a long holiday
+			adjacentHolidays = append(adjacentHolidays, currentAdjacents)
 		}
 	}
+
+	tmpValues := types.MonthTemplateValues{
+		Month:        monthName,
+		HolidaysList: holidaysOfMonth,
+		Adjacents:    adjacentHolidays,
+		Count:        len(holidaysOfMonth),
+	}
+
+	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.HolidaysOfMonth), tmpValues)
 
 	// TODO: Detect holidays adjacent to weekends and show in the message
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

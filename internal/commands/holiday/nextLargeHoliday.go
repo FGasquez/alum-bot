@@ -1,10 +1,11 @@
 package holidays
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -15,25 +16,18 @@ var HolidaysLargeCommands = discordgo.ApplicationCommand{
 	Description: "Get the next large holiday",
 }
 
-func GetNextLargeHoliday(holidays [][]Holiday) []Holiday {
-	nextLargeHoliday := holidays[0]
-	for _, holiday := range holidays {
-		parsedDate, err := time.Parse("2006-01-02", holiday[0].Date)
-		if err != nil {
-			continue
-		}
-		if parsedDate.After(time.Now()) {
-			nextLargeHoliday = holiday
-			break
+func GetNextLargeHoliday(holiday types.ProcessedHolidays) *types.ParsedHolidays {
+	for _, holiday := range holiday.All {
+		if len(holiday.Adjacent) > 0 {
+			return &holiday
 		}
 	}
 
-	return nextLargeHoliday
-
+	return nil
 }
 
 var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	holidays, err := GetHolidays(time.Now().Year())
+	holidays, err := GetHolidays(time.Now().Year(), true)
 	if err != nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -45,9 +39,9 @@ var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.Intera
 		return
 	}
 
-	largeHolidays := largeHolidays(holidays)
+	largeHolidays := GetNextLargeHoliday(holidays)
 
-	if len(largeHolidays) == 0 {
+	if largeHolidays == nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -57,8 +51,9 @@ var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.Intera
 		return
 	}
 
-	nextLargeHoliday := GetNextLargeHoliday(largeHolidays)
-	date, err := time.Parse("2006-01-02", nextLargeHoliday[0].Date)
+	dateFormatted, day, month, _ := helpers.FormatDateToSpanishUnparsed(largeHolidays.Date)
+
+	parsedDate, err := time.Parse("2006-01-02", largeHolidays.Date)
 	if err != nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -70,12 +65,29 @@ var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.Intera
 		return
 	}
 
-	_, month, _ := helpers.FormatDateToSpanish(date)
+	tmpValues := types.TemplateValues{
+		HolidayName:   largeHolidays.Name,
+		DaysLeft:      largeHolidays.DaysLeftToHoliday,
+		FormattedDate: dateFormatted,
+		NamedDate: types.NamedDate{
+			Day:   day,
+			Month: month,
+		},
+		RawDate: types.RawDate{
+			Day:   parsedDate.Day(),
+			Month: int(parsedDate.Month()),
+			Year:  parsedDate.Year(),
+		},
+		FullDate:  largeHolidays.Date,
+		Adjacents: largeHolidays.Adjacent,
+		IsToday:   largeHolidays.IsToday,
+	}
 
+	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.NextLargeHoliday), tmpValues)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("El siguiente feriado largo arranca el día **%d de %s** y dura un total de **%d días**", date.Day(), month, len(nextLargeHoliday)),
+			Content: message,
 		},
 	})
 }
