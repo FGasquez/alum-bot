@@ -1,10 +1,11 @@
 package holidays
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +43,7 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	nextHoliday, isToday := NextHoliday(time.Now(), skipWeekend, skipToday)
+	daysLeftToHoliday, nextHoliday, isToday := DaysLeft(skipWeekend, skipToday)
 	logrus.Infof("Next holiday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
 	if isToday {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -66,13 +67,31 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		})
 		return
 	}
+	dateFormatted, day, month, _ := helpers.FormatDateToSpanish(parsedDate)
 
-	day, month, year := helpers.FormatDateToSpanish(parsedDate)
+	tmpValues := types.TemplateValues{
+		HolidayName:   nextHoliday.Name,
+		DaysLeft:      daysLeftToHoliday,
+		FormattedDate: dateFormatted,
+		NamedDate: types.NamedDate{
+			Day:   day,
+			Month: month,
+		},
+		RawDate: types.RawDate{
+			Day:   parsedDate.Day(),
+			Month: int(parsedDate.Month()),
+			Year:  parsedDate.Year(),
+		},
+		FullDate:  nextHoliday.Date,
+		Adjacents: nextHoliday.Adjacent,
+		IsToday:   isToday,
+	}
 
+	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.NextHoliday), tmpValues)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("🎉 El próximo feriado es **%s** el **%s %s %s**. 🎉", nextHoliday.Name, day, month, year),
+			Content: message,
 		},
 	})
 }

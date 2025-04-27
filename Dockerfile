@@ -8,7 +8,7 @@ RUN go mod tidy && go mod download
 
 COPY . .
 
-RUN go build -o main cmd/alum-bot/main.go
+RUN go build -o main cmd/alum-bot/*
 
 FROM alpine:3.21 AS app
 
