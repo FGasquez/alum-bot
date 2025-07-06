@@ -49,10 +49,6 @@ func main() {
 	})
 
 	viper.BindPFlags(rootCmd.PersistentFlags())
-	//viper.SetDefault("token", os.Getenv("DISCORD_TOKEN"))
-	//viper.SetDefault("test-guilds", strings.Split(os.Getenv("TEST_GUILD_ID"), ","))
-	//viper.SetDefault("messages-file", os.Getenv("MESSAGES_FILE"))
-
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}

@@ -144,7 +144,6 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 
 	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.HolidaysOfMonth), tmpValues)
 
-	// TODO: Detect holidays adjacent to weekends and show in the message
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
