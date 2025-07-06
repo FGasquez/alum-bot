@@ -34,7 +34,7 @@ const (
 )
 
 // GetHolidays returns the holidays for the given year
-func GetHolidays(year int, skipPassed bool) (types.ProcessedHolidays, error) {
+func GetHolidays(year int, skipPassed bool, adjacents bool, skipWeekends bool, skipToday bool) (types.ProcessedHolidays, error) {
 	cacheFile := fmt.Sprintf("/tmp/holidays_%d.json", year)
 	data := []byte{}
 	// Check if the cache file exists and is not older than 24 hours
@@ -72,7 +72,8 @@ func GetHolidays(year int, skipPassed bool) (types.ProcessedHolidays, error) {
 
 	}
 
-	processedHolidays, err := HolidaysProcessor(data, skipPassed)
+	processedHolidays, err := HolidaysProcessor(data, skipPassed, adjacents, skipWeekends, skipToday)
+	logrus.Info("[GetHolidays] skipHolidays: ", skipWeekends)
 	if err != nil {
 		return types.ProcessedHolidays{}, err
 	}
@@ -102,7 +103,8 @@ func isToday(parsedDate time.Time) bool {
 
 // NextHoliday returns the next holiday
 func NextHoliday(date time.Time, skipWeekends bool, skipToday bool) (*types.ParsedHolidays, bool) {
-	holidays, err := GetHolidays(date.Year(), false)
+	logrus.Info(" ***** Getting next holiday")
+	holidays, err := GetHolidays(date.Year(), false, false, skipWeekends, skipToday)
 	if err != nil {
 		return nil, false
 	}
@@ -112,16 +114,21 @@ func NextHoliday(date time.Time, skipWeekends bool, skipToday bool) (*types.Pars
 
 // Calculate how many days are left for the giving holiday
 func DaysLeft(skipWeekends bool, skipToday bool) (int, types.ParsedHolidays, bool) {
-	holidays, err := GetHolidays(time.Now().Year(), true)
+	holidays, err := GetHolidays(time.Now().Year(), true, false, skipWeekends, skipToday)
+	logrus.Info(" [DaysLeft] skipWeekends: ", skipWeekends)
+	logrus.Info(" ***** Calculating days left")
+	logrus.Info("########## Next holiday: ", holidays)
 	if err != nil {
 		return 0, types.ParsedHolidays{}, false
 	}
+
+	logrus.Info(holidays)
 
 	return holidays.Next.DaysLeftToHoliday, holidays.Next, holidays.Next.IsToday
 }
 
 func GetAllHolidaysOfMonth(month Months, year int) ([]types.ParsedHolidays, error) {
-	holidays, err := GetHolidays(year, false)
+	holidays, err := GetHolidays(year, false, true, false, false)
 	if err != nil {
 		return nil, err
 	}

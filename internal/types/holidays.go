@@ -1,5 +1,9 @@
 package types
 
+const (
+	Weekend = "weekend"
+)
+
 // raw holiday
 type Holiday struct {
 	Date string `json:"fecha"`

@@ -27,7 +27,7 @@ func GetNextLargeHoliday(holiday types.ProcessedHolidays) *types.ParsedHolidays 
 }
 
 var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	holidays, err := GetHolidays(time.Now().Year(), true)
+	holidays, err := GetHolidays(time.Now().Year(), true, true, false, false)
 	if err != nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

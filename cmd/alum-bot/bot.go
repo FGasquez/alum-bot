@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	holidaysCmd "github.com/FGasquez/alum-bot/internal/commands/holiday"
 	"github.com/FGasquez/alum-bot/internal/config"
@@ -67,7 +68,7 @@ func pruneCommands() {
 
 func setActivityStatus(dg *discordgo.Session, message string) {
 
-	logrus.WithField("message", message).Info("Setting activity status")
+	logrus.WithField("message", message).Debug("Setting activity status")
 	err := dg.UpdateStatusComplex(discordgo.UpdateStatusData{
 		Activities: []*discordgo.Activity{
 			{
@@ -141,7 +142,19 @@ func runBot() {
 
 	DaysLeft, _, _ := holidaysCmd.DaysLeft(true, false)
 	logrus.Infof("Time to next holiday: %d days", DaysLeft)
-	setActivityStatus(dg, fmt.Sprintf("Waiting %d days to next holiday", DaysLeft))
+
+	go func() {
+		DaysLeft, _, _ := holidaysCmd.DaysLeft(true, true)
+		setActivityStatus(dg, fmt.Sprintf("Waiting %d days to next holiday", DaysLeft))
+
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			DaysLeft, _, _ = holidaysCmd.DaysLeft(true, true)
+			setActivityStatus(dg, fmt.Sprintf("Waiting %d days to next holiday", DaysLeft))
+		}
+	}()
 
 	logrus.Info("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)

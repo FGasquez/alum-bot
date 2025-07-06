@@ -1,7 +1,6 @@
 package holidays
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
@@ -93,7 +92,7 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "❌ Failed to retrieve the holidays of the month. Please try again later.",
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.FailedToParseHolidayDate), nil),
 			},
 		})
 		return
@@ -103,7 +102,9 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("No hay feriados en el mes **%s** del año %d", monthName, year),
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.NoHolidaysOfMonth), map[string]interface{}{
+					"Month": monthName,
+				}),
 			},
 		})
 		return
@@ -128,12 +129,17 @@ var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 			adjacentHolidays = append(adjacentHolidays, currentAdjacents)
 		}
 	}
-
+	holidaysOfMonthFiltered := make([]types.ParsedHolidays, 0, len(holidaysOfMonth))
+	for _, holiday := range holidaysOfMonth {
+		if holiday.Type != types.Weekend {
+			holidaysOfMonthFiltered = append(holidaysOfMonthFiltered, holiday)
+		}
+	}
 	tmpValues := types.MonthTemplateValues{
 		Month:        monthName,
-		HolidaysList: holidaysOfMonth,
+		HolidaysList: holidaysOfMonthFiltered,
 		Adjacents:    adjacentHolidays,
-		Count:        len(holidaysOfMonth),
+		Count:        len(holidaysOfMonthFiltered),
 	}
 
 	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.HolidaysOfMonth), tmpValues)

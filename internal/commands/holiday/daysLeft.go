@@ -59,7 +59,7 @@ var HowManyDaysToHolidayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "❌ Failed to retrieve the next holiday. Please try again later.",
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.FailedToParseHolidayDate), nil),
 			},
 		})
 		return
@@ -72,7 +72,7 @@ var HowManyDaysToHolidayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "❌ Failed to retrieve the next holiday. Please try again later.",
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.FailedToParseHolidayDate), nil),
 			},
 		})
 		return

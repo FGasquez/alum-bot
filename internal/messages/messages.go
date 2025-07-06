@@ -13,26 +13,33 @@ import (
 )
 
 type MessageKeysStruct struct {
-	NextHoliday      string
-	DaysLeft         string
-	HolidaysOfMonth  string
-	NextLargeHoliday string
+	FailedToParseHolidayDate string
+	NoHolidaysOfMonth        string
+	NextHoliday              string
+	DaysLeft                 string
+	HolidaysOfMonth          string
+	NextLargeHoliday         string
 }
 
 var MessageKeys = MessageKeysStruct{
-	NextHoliday:      "nextHoliday",
-	DaysLeft:         "daysLeft",
-	HolidaysOfMonth:  "holidaysOfMonth",
-	NextLargeHoliday: "nextLargeHoliday",
+	FailedToParseHolidayDate: "error",
+	NoHolidaysOfMonth:        "noHolidaysOfMonth",
+	NextHoliday:              "nextHoliday",
+	DaysLeft:                 "daysLeft",
+	HolidaysOfMonth:          "holidaysOfMonth",
+	NextLargeHoliday:         "nextLargeHoliday",
 }
 
 var Messages map[string]string
 
 var defaultMessages = map[string]string{
-	MessageKeys.NextHoliday:      "The next holiday is **{{ .HolidayName }}**",
-	MessageKeys.DaysLeft:         "There are **{{ .Days }}** days left for **{{ .HolidayName }}**",
-	MessageKeys.HolidaysOfMonth:  "There are **{{ .Count }}** holidays in **{{ .Month }}**: {{ range .HolidaysList }}**{{ .Name }}**, {{ end }}",
-	MessageKeys.NextLargeHoliday: "The next large holiday is **{{ .HolidayName }}**",
+	MessageKeys.NextHoliday:              "The next holiday is **{{ .HolidayName }}**",
+	MessageKeys.DaysLeft:                 "There are **{{ .Days }}** days left for **{{ .HolidayName }}**",
+	MessageKeys.HolidaysOfMonth:          "There are **{{ .Count }}** holidays in **{{ .Month }}**: {{ range .HolidaysList }}**{{ .Name }}**, {{ end }}",
+	MessageKeys.NextLargeHoliday:         "The next large holiday is **{{ .HolidayName }}**",
+	MessageKeys.FailedToParseHolidayDate: "❌ Failed to retrieve the next holiday. Please try again later.",
+	// For no holidays in month message maybe I can pass month and year in a new type
+	MessageKeys.NoHolidaysOfMonth: "There are no holidays in **{{ .Month }}**",
 }
 
 func ParseMessagesFromFile(filename string) map[string]string {

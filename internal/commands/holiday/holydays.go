@@ -33,7 +33,7 @@ var HolidaysCommands = discordgo.ApplicationCommand{
 
 var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var skipToday bool = false
-	var skipWeekend bool = false
+	var skipWeekend bool = true
 
 	params := helpers.GetParams(i.ApplicationCommandData().Options)
 	if _, ok := params["skip-today"]; ok {
@@ -44,6 +44,9 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	daysLeftToHoliday, nextHoliday, isToday := DaysLeft(skipWeekend, skipToday)
+
+	logrus.Info("##################### skipWeekend: ", skipWeekend)
+
 	logrus.Infof("Next holiday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
 	if isToday {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
