@@ -19,6 +19,7 @@ type MessageKeysStruct struct {
 	DaysLeft                 string
 	HolidaysOfMonth          string
 	NextLargeHoliday         string
+	ActivityStatus           string
 }
 
 var MessageKeys = MessageKeysStruct{
@@ -28,6 +29,7 @@ var MessageKeys = MessageKeysStruct{
 	DaysLeft:                 "daysLeft",
 	HolidaysOfMonth:          "holidaysOfMonth",
 	NextLargeHoliday:         "nextLargeHoliday",
+	ActivityStatus:           "activityStatus",
 }
 
 var Messages map[string]string
@@ -40,6 +42,7 @@ var defaultMessages = map[string]string{
 	MessageKeys.FailedToParseHolidayDate: "❌ Failed to retrieve the next holiday. Please try again later.",
 	// For no holidays in month message maybe I can pass month and year in a new type
 	MessageKeys.NoHolidaysOfMonth: "There are no holidays in **{{ .Month }}**",
+	MessageKeys.ActivityStatus:    "Waiting {{ .DaysLeft }} days **",
 }
 
 func ParseMessagesFromFile(filename string) map[string]string {
@@ -64,9 +67,6 @@ func GetMessage(key string) string {
 
 	logrus.Infof("Loading message %s", key)
 	var fileMessages = ParseMessagesFromFile(config.GetMessagesPath())
-	for k, v := range fileMessages {
-		logrus.Infof("%s: %s", k, v)
-	}
 
 	if fileMessages[key] != "" {
 		return fileMessages[key]
@@ -76,7 +76,6 @@ func GetMessage(key string) string {
 }
 
 func TemplateMessage(message string, data interface{}) string {
-	logrus.Infof("Message: %s", message)
 
 	funcMap := template.FuncMap{
 		"sub":        func(a, b int) int { return a - b },
@@ -86,13 +85,13 @@ func TemplateMessage(message string, data interface{}) string {
 	tmpl, err := template.New("message").Funcs(funcMap).Parse(message)
 	if err != nil {
 		logrus.Errorf("Failed to parse message: %v", err)
-		return ""
+		return MessageKeys.FailedToParseHolidayDate
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		logrus.Errorf("Failed to execute template: %v", err)
-		return ""
+		return MessageKeys.FailedToParseHolidayDate
 	}
 
 	return buf.String()

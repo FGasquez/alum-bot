@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,6 +8,8 @@ import (
 
 	holidaysCmd "github.com/FGasquez/alum-bot/internal/commands/holiday"
 	"github.com/FGasquez/alum-bot/internal/config"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -43,7 +44,6 @@ func removeAllCommands(dg *discordgo.Session, guilds []string) {
 			}
 		}
 	}
-	return
 }
 
 func pruneCommands() {
@@ -144,15 +144,15 @@ func runBot() {
 	logrus.Infof("Time to next holiday: %d days", DaysLeft)
 
 	go func() {
-		DaysLeft, _, _ := holidaysCmd.DaysLeft(true, true)
-		setActivityStatus(dg, fmt.Sprintf("Waiting %d days to next holiday", DaysLeft))
+		DaysLeft, _, _ := holidaysCmd.DaysLeft(true, false)
+		setActivityStatus(dg, messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.ActivityStatus), types.TemplateValues{DaysLeft: DaysLeft}))
 
-		ticker := time.NewTicker(1 * time.Minute)
+		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
 
 		for range ticker.C {
-			DaysLeft, _, _ = holidaysCmd.DaysLeft(true, true)
-			setActivityStatus(dg, fmt.Sprintf("Waiting %d days to next holiday", DaysLeft))
+			DaysLeft, _, _ := holidaysCmd.DaysLeft(true, false)
+			setActivityStatus(dg, messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.ActivityStatus), types.TemplateValues{DaysLeft: DaysLeft}))
 		}
 	}()
 

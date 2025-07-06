@@ -45,9 +45,6 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 
 	daysLeftToHoliday, nextHoliday, isToday := DaysLeft(skipWeekend, skipToday)
 
-	logrus.Info("##################### skipWeekend: ", skipWeekend)
-
-	logrus.Infof("Next holiday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
 	if isToday {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

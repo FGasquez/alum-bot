@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/types"
-	"github.com/sirupsen/logrus"
 )
 
 const dateLayout = "2006-01-02"
@@ -37,15 +36,12 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 
 		// Apply filters
 		if skipToday && isHolidayToday {
-			logrus.Debugf("Skipping today's holiday: %s", h.Name)
 			continue
 		}
 		if skipPassed && date.Before(today) && !isToday(date) {
-			logrus.Debugf("Skipping passed holiday: %s", h.Name)
 			continue
 		}
 		if skipWeekends && isWeekend(date) {
-			logrus.Debugf("Skipping weekend: %s", h.Name)
 			continue
 		}
 

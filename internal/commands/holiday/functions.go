@@ -73,7 +73,6 @@ func GetHolidays(year int, skipPassed bool, adjacents bool, skipWeekends bool, s
 	}
 
 	processedHolidays, err := HolidaysProcessor(data, skipPassed, adjacents, skipWeekends, skipToday)
-	logrus.Info("[GetHolidays] skipHolidays: ", skipWeekends)
 	if err != nil {
 		return types.ProcessedHolidays{}, err
 	}
@@ -115,14 +114,9 @@ func NextHoliday(date time.Time, skipWeekends bool, skipToday bool) (*types.Pars
 // Calculate how many days are left for the giving holiday
 func DaysLeft(skipWeekends bool, skipToday bool) (int, types.ParsedHolidays, bool) {
 	holidays, err := GetHolidays(time.Now().Year(), true, false, skipWeekends, skipToday)
-	logrus.Info(" [DaysLeft] skipWeekends: ", skipWeekends)
-	logrus.Info(" ***** Calculating days left")
-	logrus.Info("########## Next holiday: ", holidays)
 	if err != nil {
 		return 0, types.ParsedHolidays{}, false
 	}
-
-	logrus.Info(holidays)
 
 	return holidays.Next.DaysLeftToHoliday, holidays.Next, holidays.Next.IsToday
 }
