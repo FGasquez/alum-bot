@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -8,7 +9,40 @@ import (
 	"golang.org/x/text/language"
 )
 
-func FormatDateToSpanish(parsedDate time.Time) (string, string, string) {
+var spanishWeekdays = map[time.Weekday]string{
+	time.Monday:    "Lunes",
+	time.Tuesday:   "Martes",
+	time.Wednesday: "Miércoles",
+	time.Thursday:  "Jueves",
+	time.Friday:    "Viernes",
+	time.Saturday:  "Sábado",
+	time.Sunday:    "Domingo",
+}
+
+var spanishMonths = map[time.Month]string{
+	time.January:   "Enero",
+	time.February:  "Febrero",
+	time.March:     "Marzo",
+	time.April:     "Abril",
+	time.May:       "Mayo",
+	time.June:      "Junio",
+	time.July:      "Julio",
+	time.August:    "Agosto",
+	time.September: "Septiembre",
+	time.October:   "Octubre",
+	time.November:  "Noviembre",
+	time.December:  "Diciembre",
+}
+
+func FormatDateToSpanishUnparsed(date string) (string, string, string, string) {
+	parsedDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return "", "", "", ""
+	}
+	return FormatDateToSpanish(parsedDate)
+
+}
+func FormatDateToSpanish(parsedDate time.Time) (string, string, string, string) {
 	// Days and months in Spanish
 	days := []string{"domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"}
 	months := []string{"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"}
@@ -20,7 +54,7 @@ func FormatDateToSpanish(parsedDate time.Time) (string, string, string) {
 	dayNumber := parsedDate.Day()
 	dayFormatted := caser.String(day) + ", " + formatDayNumber(dayNumber) + " de " + month
 
-	return dayFormatted, month, year
+	return dayFormatted, day, month, year
 }
 
 func formatDayNumber(day int) string {
@@ -33,4 +67,18 @@ func formatDayNumber(day int) string {
 func MonthsToSpanish(month int64) string {
 	months := []string{"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"}
 	return months[month-1]
+}
+
+func FormatDate(dateStr string) string {
+	layout := "2006-01-02"
+	t, err := time.Parse(layout, dateStr)
+	if err != nil {
+		return dateStr // fallback
+	}
+
+	day := t.Day()
+	weekday := spanishWeekdays[t.Weekday()]
+	month := spanishMonths[t.Month()]
+
+	return fmt.Sprintf("%s %d de %s", weekday, day, month)
 }

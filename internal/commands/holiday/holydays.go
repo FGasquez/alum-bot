@@ -1,10 +1,11 @@
 package holidays
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +33,7 @@ var HolidaysCommands = discordgo.ApplicationCommand{
 
 var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var skipToday bool = false
-	var skipWeekend bool = false
+	var skipWeekend bool = true
 
 	params := helpers.GetParams(i.ApplicationCommandData().Options)
 	if _, ok := params["skip-today"]; ok {
@@ -42,8 +43,8 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	nextHoliday, isToday := NextHoliday(time.Now(), skipWeekend, skipToday)
-	logrus.Infof("Next holiday: %s, date: %s", nextHoliday.Name, nextHoliday.Date)
+	daysLeftToHoliday, nextHoliday, isToday := DaysLeft(skipWeekend, skipToday)
+
 	if isToday {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -66,13 +67,31 @@ var HolidaysCommandHandlers = func(s *discordgo.Session, i *discordgo.Interactio
 		})
 		return
 	}
+	dateFormatted, day, month, _ := helpers.FormatDateToSpanish(parsedDate)
 
-	day, month, year := helpers.FormatDateToSpanish(parsedDate)
+	tmpValues := types.TemplateValues{
+		HolidayName:   nextHoliday.Name,
+		DaysLeft:      daysLeftToHoliday,
+		FormattedDate: dateFormatted,
+		NamedDate: types.NamedDate{
+			Day:   day,
+			Month: month,
+		},
+		RawDate: types.RawDate{
+			Day:   parsedDate.Day(),
+			Month: int(parsedDate.Month()),
+			Year:  parsedDate.Year(),
+		},
+		FullDate:  nextHoliday.Date,
+		Adjacents: nextHoliday.Adjacent,
+		IsToday:   isToday,
+	}
 
+	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.NextHoliday), tmpValues)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("🎉 El próximo feriado es **%s** el **%s %s %s**. 🎉", nextHoliday.Name, day, month, year),
+			Content: message,
 		},
 	})
 }

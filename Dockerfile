@@ -8,12 +8,14 @@ RUN go mod tidy && go mod download
 
 COPY . .
 
-RUN go build -o main cmd/alum-bot/main.go
+RUN go build -o main cmd/alum-bot/*
 
 FROM alpine:3.21 AS app
 
 WORKDIR /app
 
 COPY --from=builder /app/main .
+
+COPY --from=builder /app/messages .
 
 ENTRYPOINT ["/app/main"]

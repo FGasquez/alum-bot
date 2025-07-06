@@ -1,10 +1,11 @@
 package holidays
 
 import (
-	"fmt"
-	"strconv"
+	"time"
 
 	"github.com/FGasquez/alum-bot/internal/helpers"
+	"github.com/FGasquez/alum-bot/internal/messages"
+	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +43,7 @@ var HowManyDaysToHolidayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		skipWeekend = params["skip-weekend"].(bool)
 	}
 
-	daysLeftToHoliday := DaysLeft(skipWeekend, skipToday)
+	daysLeftToHoliday, holiday, isToday := DaysLeft(skipWeekend, skipToday)
 	if daysLeftToHoliday == 0 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -58,16 +59,48 @@ var HowManyDaysToHolidayHandlers = func(s *discordgo.Session, i *discordgo.Inter
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "❌ Failed to retrieve the next holiday. Please try again later.",
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.FailedToParseHolidayDate), nil),
 			},
 		})
 		return
 	}
 
+	dateFormatted, day, month, _ := helpers.FormatDateToSpanishUnparsed(holiday.Date)
+	parsedDate, err := time.Parse("2006-01-02", holiday.Date)
+	if err != nil {
+		logrus.Errorf("Failed to parse holiday date: %v", err)
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.FailedToParseHolidayDate), nil),
+			},
+		})
+		return
+	}
+
+	tmpValues := types.TemplateValues{
+		HolidayName:   holiday.Name,
+		DaysLeft:      daysLeftToHoliday,
+		FormattedDate: dateFormatted,
+		NamedDate: types.NamedDate{
+			Day:   day,
+			Month: month,
+		},
+		RawDate: types.RawDate{
+			Day:   parsedDate.Day(),
+			Month: int(parsedDate.Month()),
+			Year:  parsedDate.Year(),
+		},
+		FullDate:  holiday.Date,
+		Adjacents: holiday.Adjacent,
+		IsToday:   isToday,
+	}
+
+	message := messages.TemplateMessage(messages.GetMessage(messages.MessageKeys.DaysLeft), tmpValues)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("🎉 Para el próximo feriado faltan %s días! 🎉", strconv.Itoa(daysLeftToHoliday)),
+			Content: message,
 		},
 	})
 }

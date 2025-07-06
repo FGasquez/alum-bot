@@ -1,0 +1,18 @@
+nextHoliday: "🎉 El próximo feriado es **{{ .HolidayName }}** el **{{ .FormattedDate }}**. 🎉"
+daysLeft: "🎉 Para el próximo feriado faltan **{{ .DaysLeft }}** días! [{{ .RawDate.Day }}/{{.RawDate.Month}}] 🎉 "
+holidaysOfMonth: |
+  El mes de **{{ .Month }}** tiene **{{ .Count }}** feriados:
+  {{- range .HolidaysList }}
+  - {{ .Name }} el **{{ formatDate .Date }}**
+  {{- end }}
+  {{- if .Adjacents }}
+
+  Feriados largos:
+  {{- range .Adjacents }}
+  - Desde **{{ formatDate (index . 0).Date }}** hasta **{{ formatDate (index . (sub (len .) 1)).Date }}**
+  {{- end }}
+  {{- end }}
+
+nextLargeHoliday: "🎉 El próximo feriado largo es el **{{ .FormattedDate }}** y faltan **{{ .DaysLeft }} días!**. 🎉"
+activityStatus: "{{ if gt .DaysLeft 0  }}⏳ Esperando {{ .DaysLeft }} días para próximo feriado {{ else }} 😎 Disfrutando del feriado! {{ end }}"
+error: "❌ 😔 No se pudo obtener el feriado. ."
