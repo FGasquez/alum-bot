@@ -16,4 +16,6 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 
+COPY --from=builder /app/messages .
+
 ENTRYPOINT ["/app/main"]
