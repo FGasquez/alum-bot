@@ -39,7 +39,7 @@ var defaultMessages = map[string]string{
 	MessageKeys.DaysLeft:                 "There are **{{ .Days }}** days left for **{{ .HolidayName }}**",
 	MessageKeys.HolidaysOfMonth:          "There are **{{ .Count }}** holidays in **{{ .Month }}**: {{ range .HolidaysList }}**{{ .Name }}**, {{ end }}",
 	MessageKeys.NextLargeHoliday:         "The next large holiday is **{{ .HolidayName }}**",
-	MessageKeys.FailedToParseHolidayDate: "❌ Failed to retrieve the next holiday. Please try again later.",
+	MessageKeys.FailedToParseHolidayDate: "Failed to retrieve the next holiday. Please try again later.",
 	// For no holidays in month message maybe I can pass month and year in a new type
 	MessageKeys.NoHolidaysOfMonth: "There are no holidays in **{{ .Month }}**",
 	MessageKeys.ActivityStatus:    "Waiting {{ .DaysLeft }} days **",

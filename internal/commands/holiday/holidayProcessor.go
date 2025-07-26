@@ -27,7 +27,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 
 	// Iterate over raw holidays
 	for _, h := range rawHolidays {
-		date, err := time.Parse(dateLayout, h.Date)
+		date, err := time.ParseInLocation(dateLayout, h.Date, time.Local)
 		if err != nil {
 			continue // Skip records with invalid dates.
 		}
