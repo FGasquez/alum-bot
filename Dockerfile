@@ -12,6 +12,7 @@ RUN go build -o main cmd/alum-bot/*
 
 FROM alpine:3.21 AS app
 
+RUN apk add --no-cache tzdata
 WORKDIR /app
 
 COPY --from=builder /app/main .
