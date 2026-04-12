@@ -6,6 +6,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/FGasquez/alum-bot/internal/commands"
+	birthdayCmd "github.com/FGasquez/alum-bot/internal/commands/birthday"
 	holidaysCmd "github.com/FGasquez/alum-bot/internal/commands/holiday"
 	"github.com/FGasquez/alum-bot/internal/config"
 	"github.com/FGasquez/alum-bot/internal/messages"
@@ -14,19 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var commands = []*discordgo.ApplicationCommand{
-	&holidaysCmd.HolidaysCommands,
-	&holidaysCmd.HowManyDaysToHoliday,
-	&holidaysCmd.HolidaysOfMonth,
-	&holidaysCmd.HolidaysLargeCommands,
-}
-
-var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-	holidaysCmd.HolidaysCommandName:      holidaysCmd.HolidaysCommandHandlers,
-	holidaysCmd.DaysLeftToHolidayName:    holidaysCmd.HowManyDaysToHolidayHandlers,
-	holidaysCmd.HolidaysOfMonthName:      holidaysCmd.HolidaysOfMonthHandlers,
-	holidaysCmd.HolidaysLargeCommandName: holidaysCmd.HolidayLargeCommandHandlers,
-}
+// Commands and handlers are managed via internal/commands registry.
 
 func removeAllCommands(dg *discordgo.Session, guilds []string) {
 	logrus.Info("Pruning all commands and exiting")
@@ -83,7 +73,44 @@ func setActivityStatus(dg *discordgo.Session, message string) {
 	}
 }
 
+func advertiseBirthday() {
+	token := config.GetToken()
+	channelID := config.GetAdvertiseChannel()
+
+	if channelID == "" {
+		logrus.Error("Advertise channel is not set. Use --advertise-channel or ADVERTISE_CHANNEL env var.")
+		os.Exit(1)
+	}
+
+	dg, err := discordgo.New("Bot " + token)
+	if err != nil {
+		logrus.WithError(err).Error("Error creating Discord session for advertisement job")
+		os.Exit(1)
+	}
+
+	sent, err := birthdayCmd.AdvertiseTodayBirthday(dg, channelID)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to advertise birthday")
+		os.Exit(1)
+	}
+	if sent {
+		logrus.Info("Successfully advertised today's birthday!")
+	}
+	os.Exit(0)
+}
+
 func runBot() {
+	if config.GetAdvertiseTodayBirthday() {
+		if config.GetBirthdaysPath() == "" {
+			logrus.Error("Birthdays file is not set. The advertise job requires a birthdays file. Use --birthdays-file or BIRTHDAYS_FILE env var.")
+			os.Exit(1)
+		}
+
+		logrus.Info("Running advertise birthday job...")
+		advertiseBirthday()
+		return
+	}
+
 	token := config.GetToken()
 	testGuilds := config.GetTestGuilds()
 
@@ -92,6 +119,8 @@ func runBot() {
 		logrus.WithError(err).Error("Error creating Discord session")
 		return
 	}
+
+	activeCommands, commandHandlers := commands.GetActiveCommands()
 
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type == discordgo.InteractionApplicationCommand {
@@ -124,7 +153,7 @@ func runBot() {
 
 	var registeredCommands []*discordgo.ApplicationCommand
 	for _, guildID := range testGuilds {
-		for _, cmd := range commands {
+		for _, cmd := range activeCommands {
 			if existingCommandNames[cmd.Name] {
 				logrus.WithField("command", cmd.Name).Info("Command already registered, skipping")
 				continue

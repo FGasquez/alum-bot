@@ -1,0 +1,13 @@
+- name: "Fede"
+  username: "fgasquez"
+  date: "04-12"
+
+- name: "Alice Smith"
+  username: "<@987654321512398765>" # It's a random uid
+  date: "04-20"
+
+- name: "Bob Jones"
+  date: "12-31" # A birthday without a Discord username
+
+- name: "Charlie Leap"
+  date: "02-29" # A leap year birthday

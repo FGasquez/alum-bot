@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FGasquez/alum-bot/internal/config"
 	"github.com/FGasquez/alum-bot/internal/types"
 )
 
@@ -18,7 +19,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 		return types.ProcessedHolidays{}, err
 	}
 
-	now := time.Now()
+	now := time.Now().In(config.GetTimezone())
 	// Use the start of today for consistent date comparisons.
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
@@ -50,6 +51,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 			Date:              h.Date,
 			Type:              h.Type,
 			Name:              h.Name,
+			ParsedDate:        date,
 			FormattedDate:     date.Format("Monday, 2 January 2006"),
 			NamedDate:         types.NamedDate{Day: date.Weekday().String(), Month: date.Month().String()},
 			RawDate:           types.RawDate{Year: date.Year(), Month: int(date.Month()), Day: date.Day()},
@@ -60,7 +62,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 	}
 
 	sort.Slice(parsedHolidays, func(i, j int) bool {
-		return parsedHolidays[i].Date < parsedHolidays[j].Date
+		return parsedHolidays[i].ParsedDate.Before(parsedHolidays[j].ParsedDate)
 	})
 
 	// Group adjacent holidays
@@ -90,8 +92,8 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 		group := []*types.ParsedHolidays{&sortedHolidays[i]}
 		j := i
 		for j+1 < len(sortedHolidays) {
-			prevDate, _ := time.ParseInLocation(dateLayout, sortedHolidays[j].Date, time.Local)
-			nextDate, _ := time.ParseInLocation(dateLayout, sortedHolidays[j+1].Date, time.Local)
+			prevDate := sortedHolidays[j].ParsedDate
+			nextDate := sortedHolidays[j+1].ParsedDate
 
 			// Check if the next holiday is exactly one day after the current one.
 			if !prevDate.AddDate(0, 0, 1).Equal(nextDate) {
@@ -109,8 +111,8 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 		var finalGroup []types.ParsedHolidays
 
 		// Get the start and end dates of the core holiday block.
-		firstHolidayDate, _ := time.ParseInLocation(dateLayout, group[0].Date, time.Local)
-		lastHolidayDate, _ := time.ParseInLocation(dateLayout, group[len(group)-1].Date, time.Local)
+		firstHolidayDate := group[0].ParsedDate
+		lastHolidayDate := group[len(group)-1].ParsedDate
 
 		// Find adjacent previous weekends.
 		finalGroup = append(finalGroup, findPrecedingWeekends(firstHolidayDate)...)
@@ -119,8 +121,8 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 			finalGroup = append(finalGroup, *holiday)
 			// If there's another holiday in the group, check for a weekend gap.
 			if i+1 < len(group) {
-				currentDate, _ := time.ParseInLocation(dateLayout, holiday.Date, time.Local)
-				nextDate, _ := time.ParseInLocation(dateLayout, group[i+1].Date, time.Local)
+				currentDate := holiday.ParsedDate
+				nextDate := group[i+1].ParsedDate
 				finalGroup = append(finalGroup, createWeekendHolidaysBetween(currentDate, nextDate)...)
 			}
 		}
@@ -177,13 +179,12 @@ func createWeekendHolidaysBetween(start, end time.Time) []types.ParsedHolidays {
 // findNextAndPrevious finds the next and previous holidays relative to today
 func findNextAndPrevious(holidays []types.ParsedHolidays, today time.Time) (next, previous types.ParsedHolidays) {
 	index := sort.Search(len(holidays), func(i int) bool {
-		date, _ := time.ParseInLocation(dateLayout, holidays[i].Date, time.Local)
-		return !date.Before(today)
+		return !holidays[i].ParsedDate.Before(today)
 	})
 
 	// If a holiday is found at or after today
 	if index < len(holidays) {
-		date, _ := time.ParseInLocation(dateLayout, holidays[index].Date, time.Local)
+		date := holidays[index].ParsedDate
 
 		if date.Equal(today) {
 			next = holidays[index]
@@ -214,6 +215,7 @@ func createWeekendHoliday(day time.Time) types.ParsedHolidays {
 		Date:          day.Format(dateLayout),
 		Type:          types.Weekend,
 		Name:          day.Weekday().String(),
+		ParsedDate:    day,
 		FormattedDate: day.Format("Monday, 2 January 2006"),
 		NamedDate:     types.NamedDate{Day: day.Weekday().String(), Month: day.Month().String()},
 		RawDate:       types.RawDate{Year: day.Year(), Month: int(day.Month()), Day: day.Day()},

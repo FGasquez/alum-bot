@@ -20,6 +20,9 @@ type MessageKeysStruct struct {
 	HolidaysOfMonth          string
 	NextLargeHoliday         string
 	ActivityStatus           string
+	NextBday                 string
+	TodayBday                string
+	BdayLeft                 string
 }
 
 var MessageKeys = MessageKeysStruct{
@@ -30,6 +33,9 @@ var MessageKeys = MessageKeysStruct{
 	HolidaysOfMonth:          "holidaysOfMonth",
 	NextLargeHoliday:         "nextLargeHoliday",
 	ActivityStatus:           "activityStatus",
+	NextBday:                 "nextBday",
+	TodayBday:                "todayBday",
+	BdayLeft:                 "bdayLeft",
 }
 
 var Messages map[string]string
@@ -43,6 +49,9 @@ var defaultMessages = map[string]string{
 	// For no holidays in month message maybe I can pass month and year in a new type
 	MessageKeys.NoHolidaysOfMonth: "There are no holidays in **{{ .Month }}**",
 	MessageKeys.ActivityStatus:    "Waiting {{ .DaysLeft }} days **",
+	MessageKeys.NextBday:          "The next birthday in the group is {{ .Username }} on **{{ .Date }}** (!)",
+	MessageKeys.TodayBday:         "🎉 Today is {{ .Username }}'s birthday! 🎉",
+	MessageKeys.BdayLeft:          "There are **{{ .DaysLeft }}** days left until {{ .Username }}'s birthday!",
 }
 
 func ParseMessagesFromFile(filename string) map[string]string {

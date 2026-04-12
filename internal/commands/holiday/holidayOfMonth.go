@@ -3,6 +3,7 @@ package holidays
 import (
 	"time"
 
+	"github.com/FGasquez/alum-bot/internal/config"
 	"github.com/FGasquez/alum-bot/internal/helpers"
 	"github.com/FGasquez/alum-bot/internal/messages"
 	"github.com/FGasquez/alum-bot/internal/types"
@@ -78,7 +79,7 @@ var HolidaysOfMonth = discordgo.ApplicationCommand{
 var HolidaysOfMonthHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	month := i.ApplicationCommandData().Options[0].IntValue()
 	monthName := helpers.MonthsToSpanish(month)
-	year := time.Now().Year()
+	year := time.Now().In(config.GetTimezone()).Year()
 
 	// TODO: Fix year param
 	params := helpers.GetParams(i.ApplicationCommandData().Options)

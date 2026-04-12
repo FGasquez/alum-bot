@@ -35,6 +35,10 @@ func main() {
 	rootCmd.PersistentFlags().StringP("token", "t", "", "Bot token (default: DISCORD_TOKEN)")
 	rootCmd.PersistentFlags().StringSliceP("test-guilds", "g", []string{}, "List of test guild IDs (default: TEST_GUILD_ID)")
 	rootCmd.PersistentFlags().String("messages-file", "", "Path to messages file (default: '')")
+	rootCmd.PersistentFlags().String("birthdays-file", "", "Path to birthdays yaml file (default: '')")
+	rootCmd.PersistentFlags().Bool("advertise-today-birthday", false, "Run as a one-shot job to announce today's birthday and exit")
+	rootCmd.PersistentFlags().String("advertise-channel", "", "The Discord channel ID to send the birthday advertisement to")
+	rootCmd.PersistentFlags().String("timezone", "", "The timezone to use for date calculations (default: TZ env var or America/Argentina/Buenos_Aires)")
 
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		log.Fatal(err)
