@@ -32,3 +32,5 @@ activityStatus: |
   {{ end }}
 error: "❌ 😔 No se pudo obtener el feriado."
 NoHolidaysOfMonth: "No hay feriados en **{{ .Month }}** 😔"
+todayBday: "🎉 Hoy es el cumpleaños de **{{ .Username }}**! 🎉"
+bdayLeft: "Faltan **{{ .DaysLeft }}** días para el cumpleaños de **{{ .Username }}**!"

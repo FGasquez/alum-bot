@@ -3,6 +3,7 @@ package holidays
 import (
 	"time"
 
+	"github.com/FGasquez/alum-bot/internal/config"
 	"github.com/FGasquez/alum-bot/internal/helpers"
 	"github.com/FGasquez/alum-bot/internal/messages"
 	"github.com/FGasquez/alum-bot/internal/types"
@@ -27,7 +28,7 @@ func GetNextLargeHoliday(holiday types.ProcessedHolidays) *types.ParsedHolidays 
 }
 
 var HolidayLargeCommandHandlers = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	holidays, err := GetHolidays(time.Now().Year(), true, true, false, false)
+	holidays, err := GetHolidays(time.Now().In(config.GetTimezone()).Year(), true, true, false, false)
 	if err != nil {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

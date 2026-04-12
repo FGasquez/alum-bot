@@ -6,10 +6,10 @@ func GetParams(options []*discordgo.ApplicationCommandInteractionDataOption) map
 	params := make(map[string]interface{})
 	for _, option := range options {
 		switch option.Type {
-		case discordgo.ApplicationCommandOptionSubCommand:
-			GetParams(option.Options)
-		case discordgo.ApplicationCommandOptionSubCommandGroup:
-			GetParams(option.Options)
+		case discordgo.ApplicationCommandOptionSubCommand, discordgo.ApplicationCommandOptionSubCommandGroup:
+			for k, v := range GetParams(option.Options) {
+				params[k] = v
+			}
 		default:
 			params[option.Name] = option.Value
 		}

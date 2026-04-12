@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FGasquez/alum-bot/internal/config"
 	"github.com/FGasquez/alum-bot/internal/types"
 	"github.com/sirupsen/logrus"
 )
@@ -82,12 +83,9 @@ func GetHolidays(year int, skipPassed bool, adjacents bool, skipWeekends bool, s
 
 // IsHoliday returns true if the given date is a holiday
 func IsHoliday(date time.Time, holidays []types.Holiday) bool {
+	dateStr := date.Format("2006-01-02")
 	for _, h := range holidays {
-		holidayDate, err := time.Parse("2006-01-02", h.Date)
-		if err != nil {
-			continue
-		}
-		if date.Equal(holidayDate) {
+		if dateStr == h.Date {
 			return true
 		}
 	}
@@ -95,7 +93,7 @@ func IsHoliday(date time.Time, holidays []types.Holiday) bool {
 }
 
 func isToday(parsedDate time.Time) bool {
-	y1, m1, d1 := time.Now().Date()
+	y1, m1, d1 := time.Now().In(config.GetTimezone()).Date()
 	y2, m2, d2 := parsedDate.Date()
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
@@ -113,7 +111,7 @@ func NextHoliday(date time.Time, skipWeekends bool, skipToday bool) (*types.Pars
 
 // Calculate how many days are left for the giving holiday
 func DaysLeft(skipWeekends bool, skipToday bool) (int, types.ParsedHolidays, bool) {
-	holidays, err := GetHolidays(time.Now().Year(), true, false, skipWeekends, skipToday)
+	holidays, err := GetHolidays(time.Now().In(config.GetTimezone()).Year(), true, false, skipWeekends, skipToday)
 	if err != nil {
 		return 0, types.ParsedHolidays{}, false
 	}

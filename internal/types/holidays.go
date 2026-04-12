@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 const (
 	Weekend = "weekend"
 )
@@ -15,6 +17,7 @@ type ParsedHolidays struct {
 	Date              string
 	Type              string
 	Name              string
+	ParsedDate        time.Time
 	FormattedDate     string
 	NamedDate         NamedDate
 	RawDate           RawDate
