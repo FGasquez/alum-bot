@@ -263,3 +263,106 @@ func TestFindPrecedingSucceedingWeekends(t *testing.T) {
 		t.Errorf("Expected matching succeeding dates")
 	}
 }
+
+func TestCreateWeekendHolidayDaysLeft(t *testing.T) {
+	today, _ := time.Parse("2006-01-02", "2026-09-04")
+	saturday, _ := time.Parse("2006-01-02", "2026-10-10")
+
+	wh := createWeekendHoliday(saturday, today)
+	if wh.DaysLeftToHoliday != 36 {
+		t.Errorf("Expected 36 days left, got %d", wh.DaysLeftToHoliday)
+	}
+	if wh.IsToday {
+		t.Errorf("Expected IsToday to be false")
+	}
+
+	todayWh := createWeekendHoliday(today, today)
+	if todayWh.DaysLeftToHoliday != 0 {
+		t.Errorf("Expected 0 days left for today, got %d", todayWh.DaysLeftToHoliday)
+	}
+	if !todayWh.IsToday {
+		t.Errorf("Expected IsToday to be true for today")
+	}
+}
+
+func TestGetNextLargeHoliday(t *testing.T) {
+	satDate, _ := time.Parse("2006-01-02", "2026-10-10")
+	sunDate, _ := time.Parse("2006-01-02", "2026-10-11")
+	monDate, _ := time.Parse("2006-01-02", "2026-10-12")
+
+	sat := types.ParsedHolidays{Date: "2026-10-10", ParsedDate: satDate, DaysLeftToHoliday: 36, Name: "Saturday", Type: types.Weekend}
+	sun := types.ParsedHolidays{Date: "2026-10-11", ParsedDate: sunDate, DaysLeftToHoliday: 37, Name: "Sunday", Type: types.Weekend}
+	mon := types.ParsedHolidays{Date: "2026-10-12", ParsedDate: monDate, DaysLeftToHoliday: 38, Name: "Día del Respeto a la Diversidad Cultural"}
+
+	group := []types.ParsedHolidays{sat, sun, mon}
+	sat.Adjacent = group
+	sun.Adjacent = group
+	mon.Adjacent = group
+
+	processed := types.ProcessedHolidays{
+		All: []types.ParsedHolidays{sat, sun, mon},
+	}
+
+	nextLarge := GetNextLargeHoliday(processed)
+	if nextLarge == nil {
+		t.Fatalf("Expected large holiday, got nil")
+	}
+	if nextLarge.Date != "2026-10-10" {
+		t.Errorf("Expected date to be 2026-10-10, got %s", nextLarge.Date)
+	}
+	if nextLarge.DaysLeftToHoliday != 36 {
+		t.Errorf("Expected DaysLeftToHoliday to be 36, got %d", nextLarge.DaysLeftToHoliday)
+	}
+}
+
+func TestGetNextLargeHolidaySkipsPast(t *testing.T) {
+	pastSat, _ := time.Parse("2006-01-02", "2026-08-15")
+	futSat, _ := time.Parse("2006-01-02", "2026-10-10")
+
+	past := types.ParsedHolidays{
+		Date:              "2026-08-15",
+		ParsedDate:        pastSat,
+		DaysLeftToHoliday: -20,
+		Adjacent:          []types.ParsedHolidays{{Date: "2026-08-15"}, {Date: "2026-08-16"}},
+	}
+	fut := types.ParsedHolidays{
+		Date:              "2026-10-10",
+		ParsedDate:        futSat,
+		DaysLeftToHoliday: 36,
+		Adjacent:          []types.ParsedHolidays{{Date: "2026-10-10"}, {Date: "2026-10-11"}},
+	}
+
+	processed := types.ProcessedHolidays{
+		All: []types.ParsedHolidays{past, fut},
+	}
+
+	nextLarge := GetNextLargeHoliday(processed)
+	if nextLarge == nil {
+		t.Fatalf("Expected upcoming large holiday, got nil")
+	}
+	if nextLarge.Date != "2026-10-10" {
+		t.Errorf("Expected date to be 2026-10-10, got %s", nextLarge.Date)
+	}
+}
+
+func TestGroupAdjacentHolidaysBridgeWeekend(t *testing.T) {
+	// Friday May 1st and Monday May 4th should be connected across the weekend
+	d1, _ := time.Parse("2006-01-02", "2026-05-01") // Friday
+	d2, _ := time.Parse("2006-01-02", "2026-05-04") // Monday
+
+	holidays := []types.ParsedHolidays{
+		{ParsedDate: d1, Date: "2026-05-01", Name: "Workers Day"},
+		{ParsedDate: d2, Date: "2026-05-04", Name: "Monday Holiday"},
+	}
+
+	grouped := groupAdjacentHolidays(holidays)
+	// Friday + Saturday + Sunday + Monday = 4 days
+	if len(grouped) != 4 {
+		t.Fatalf("Expected 4 items in grouped bridge holiday, got %d", len(grouped))
+	}
+	for _, h := range grouped {
+		if len(h.Adjacent) != 4 {
+			t.Errorf("Expected 4 adjacent items in group, got %d for %s", len(h.Adjacent), h.Date)
+		}
+	}
+}

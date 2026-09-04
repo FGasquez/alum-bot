@@ -18,9 +18,9 @@ var HolidaysLargeCommands = discordgo.ApplicationCommand{
 }
 
 func GetNextLargeHoliday(holiday types.ProcessedHolidays) *types.ParsedHolidays {
-	for _, holiday := range holiday.All {
-		if len(holiday.Adjacent) > 0 {
-			return &holiday
+	for i := range holiday.All {
+		if len(holiday.All[i].Adjacent) > 0 && holiday.All[i].DaysLeftToHoliday >= 0 {
+			return &holiday.All[i]
 		}
 	}
 

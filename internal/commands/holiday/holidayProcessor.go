@@ -33,13 +33,16 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 			continue // Skip records with invalid dates.
 		}
 
-		isHolidayToday := date.Year() == today.Year() && date.YearDay() == today.YearDay()
+		y, m, d := date.Date()
+		normDate := time.Date(y, m, d, 0, 0, 0, 0, today.Location())
+		isHolidayToday := y == today.Year() && m == today.Month() && d == today.Day()
+		daysLeft := int(math.Round(normDate.Sub(today).Hours() / 24))
 
 		// Apply filters
 		if skipToday && isHolidayToday {
 			continue
 		}
-		if skipPassed && date.Before(today) && !isToday(date) {
+		if skipPassed && normDate.Before(today) && !isHolidayToday {
 			continue
 		}
 		if skipWeekends && isWeekend(date) {
@@ -57,7 +60,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 			RawDate:           types.RawDate{Year: date.Year(), Month: int(date.Month()), Day: date.Day()},
 			FullDate:          date.Format(time.RFC3339),
 			IsToday:           isHolidayToday,
-			DaysLeftToHoliday: int(math.Ceil(date.Sub(today).Hours() / 24)),
+			DaysLeftToHoliday: daysLeft,
 		})
 	}
 
@@ -67,7 +70,7 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 
 	// Group adjacent holidays
 	if adjacents {
-		parsedHolidays = groupAdjacentHolidays(parsedHolidays)
+		parsedHolidays = groupAdjacentHolidays(parsedHolidays, today)
 	}
 
 	next, previous := findNextAndPrevious(parsedHolidays, today)
@@ -79,7 +82,21 @@ func HolidaysProcessor(jsonData []byte, skipPassed, adjacents, skipWeekends, ski
 	}, nil
 }
 
-func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.ParsedHolidays {
+func isAllWeekendBetween(start, end time.Time) bool {
+	d := start.AddDate(0, 0, 1)
+	if !d.Before(end) {
+		return false
+	}
+	for d.Before(end) {
+		if !isWeekend(d) {
+			return false
+		}
+		d = d.AddDate(0, 0, 1)
+	}
+	return true
+}
+
+func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays, today ...time.Time) []types.ParsedHolidays {
 	if len(sortedHolidays) == 0 {
 		return sortedHolidays
 	}
@@ -87,7 +104,7 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 	var allGroupedHolidays []types.ParsedHolidays
 	var holidayGroups [][]*types.ParsedHolidays
 
-	// Find groups of holidays that are directly adjacent (e.g., Mon, Tue).
+	// Find groups of holidays that are directly adjacent (e.g., Mon, Tue) or separated only by weekends.
 	for i := 0; i < len(sortedHolidays); {
 		group := []*types.ParsedHolidays{&sortedHolidays[i]}
 		j := i
@@ -95,9 +112,9 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 			prevDate := sortedHolidays[j].ParsedDate
 			nextDate := sortedHolidays[j+1].ParsedDate
 
-			// Check if the next holiday is exactly one day after the current one.
-			if !prevDate.AddDate(0, 0, 1).Equal(nextDate) {
-				break // Not directly adjacent.
+			// Check if the next holiday is adjacent or separated only by weekend days.
+			if !prevDate.AddDate(0, 0, 1).Equal(nextDate) && !isAllWeekendBetween(prevDate, nextDate) {
+				break
 			}
 			group = append(group, &sortedHolidays[j+1])
 			j++
@@ -115,7 +132,7 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 		lastHolidayDate := group[len(group)-1].ParsedDate
 
 		// Find adjacent previous weekends.
-		finalGroup = append(finalGroup, findPrecedingWeekends(firstHolidayDate)...)
+		finalGroup = append(finalGroup, findPrecedingWeekends(firstHolidayDate, today...)...)
 
 		for i, holiday := range group {
 			finalGroup = append(finalGroup, *holiday)
@@ -123,11 +140,11 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 			if i+1 < len(group) {
 				currentDate := holiday.ParsedDate
 				nextDate := group[i+1].ParsedDate
-				finalGroup = append(finalGroup, createWeekendHolidaysBetween(currentDate, nextDate)...)
+				finalGroup = append(finalGroup, createWeekendHolidaysBetween(currentDate, nextDate, today...)...)
 			}
 		}
 
-		finalGroup = append(finalGroup, findSucceedingWeekends(lastHolidayDate)...)
+		finalGroup = append(finalGroup, findSucceedingWeekends(lastHolidayDate, today...)...)
 
 		// Link all items in the final group together.
 		if len(finalGroup) > 1 {
@@ -141,35 +158,43 @@ func groupAdjacentHolidays(sortedHolidays []types.ParsedHolidays) []types.Parsed
 	return allGroupedHolidays
 }
 
+func getReferenceToday(today ...time.Time) time.Time {
+	if len(today) > 0 {
+		return today[0]
+	}
+	now := time.Now().In(config.GetTimezone())
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+}
+
 // findPrecedingWeekends finds all weekend days immediately before a given date.
-func findPrecedingWeekends(startDate time.Time) []types.ParsedHolidays {
+func findPrecedingWeekends(startDate time.Time, today ...time.Time) []types.ParsedHolidays {
 	var weekends []types.ParsedHolidays
 	d := startDate.AddDate(0, 0, -1) // Start checking the day before.
 	for isWeekend(d) {
-		weekends = append([]types.ParsedHolidays{createWeekendHoliday(d)}, weekends...)
+		weekends = append([]types.ParsedHolidays{createWeekendHoliday(d, today...)}, weekends...)
 		d = d.AddDate(0, 0, -1)
 	}
 	return weekends
 }
 
 // findSucceedingWeekends finds all weekend days immediately after a given date.
-func findSucceedingWeekends(endDate time.Time) []types.ParsedHolidays {
+func findSucceedingWeekends(endDate time.Time, today ...time.Time) []types.ParsedHolidays {
 	var weekends []types.ParsedHolidays
 	d := endDate.AddDate(0, 0, 1) // Start checking the day after.
 	for isWeekend(d) {
-		weekends = append(weekends, createWeekendHoliday(d))
+		weekends = append(weekends, createWeekendHoliday(d, today...))
 		d = d.AddDate(0, 0, 1)
 	}
 	return weekends
 }
 
 // createWeekendHolidaysBetween finds weekend days that fall between two dates.
-func createWeekendHolidaysBetween(start, end time.Time) []types.ParsedHolidays {
+func createWeekendHolidaysBetween(start, end time.Time, today ...time.Time) []types.ParsedHolidays {
 	var weekends []types.ParsedHolidays
 	d := start.AddDate(0, 0, 1)
 	for d.Before(end) {
 		if isWeekend(d) {
-			weekends = append(weekends, createWeekendHoliday(d))
+			weekends = append(weekends, createWeekendHoliday(d, today...))
 		}
 		d = d.AddDate(0, 0, 1)
 	}
@@ -210,15 +235,25 @@ func isWeekend(t time.Time) bool {
 }
 
 // createWeekendHoliday is a factory function to build a weekend holiday object.
-func createWeekendHoliday(day time.Time) types.ParsedHolidays {
+func createWeekendHoliday(day time.Time, today ...time.Time) types.ParsedHolidays {
+	refToday := getReferenceToday(today...)
+	y1, m1, d1 := day.Date()
+	y2, m2, d2 := refToday.Date()
+	normDay := time.Date(y1, m1, d1, 0, 0, 0, 0, refToday.Location())
+	normToday := time.Date(y2, m2, d2, 0, 0, 0, 0, refToday.Location())
+	isHolidayToday := y1 == y2 && m1 == m2 && d1 == d2
+	daysLeft := int(math.Round(normDay.Sub(normToday).Hours() / 24))
+
 	return types.ParsedHolidays{
-		Date:          day.Format(dateLayout),
-		Type:          types.Weekend,
-		Name:          day.Weekday().String(),
-		ParsedDate:    day,
-		FormattedDate: day.Format("Monday, 2 January 2006"),
-		NamedDate:     types.NamedDate{Day: day.Weekday().String(), Month: day.Month().String()},
-		RawDate:       types.RawDate{Year: day.Year(), Month: int(day.Month()), Day: day.Day()},
-		FullDate:      day.Format(time.RFC3339),
+		Date:              day.Format(dateLayout),
+		Type:              types.Weekend,
+		Name:              day.Weekday().String(),
+		ParsedDate:        day,
+		FormattedDate:     day.Format("Monday, 2 January 2006"),
+		NamedDate:         types.NamedDate{Day: day.Weekday().String(), Month: day.Month().String()},
+		RawDate:           types.RawDate{Year: day.Year(), Month: int(day.Month()), Day: day.Day()},
+		FullDate:          day.Format(time.RFC3339),
+		IsToday:           isHolidayToday,
+		DaysLeftToHoliday: daysLeft,
 	}
 }
